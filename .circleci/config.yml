@@ -10,7 +10,7 @@ workflows:
           aws-secret-access-key: SECRET_ACCESS_KEY_ENV_VAR_NAME
           create-repo: false
           dockerfile: Dockerfile
-          path: pathToMyDockerfile
+          path: ./images
           profile-name: myProfileName
           region: AWS_REGION_ENV_VAR_NAME
           repo: dfd-app-repository
