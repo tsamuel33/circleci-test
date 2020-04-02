@@ -1,0 +1,120 @@
+version: 2.1
+orbs:
+    aws-ecr: circleci/aws-ecr@6.5.0
+    aws-eks: circleci/aws-eks@0.2.6
+    kubernetes: circleci/kubernetes@0.10.1
+jobs:
+    build: 
+        working_directory: ~/app # directory where steps will run
+        docker: 
+            - image: circleci/node:12
+              environment:
+                CI_BRANCH: ${CIRCLE_BRANCH}
+                CI_BUILD: ${CIRCLE_BUILD_NUM}
+                CI_SHA: ${CIRCLE_SHA1}
+                NODE_ENV: test
+                RDS_HOST: 127.0.0.1
+                RDS_USERNAME: test
+                RDS_PASSWORD: test
+                RDS_DATABASE: circle_test
+            - image: circleci/mysql:5.7
+              environment:
+                MYSQL_ALLOW_EMPTY_PASSWORD: 'true'
+                MYSQL_ROOT_PASSWORD: root
+                MYSQL_USER: test
+                MYSQL_PASSWORD: test
+                MYSQL_DATABASE: circle_test
+        steps: 
+            - checkout
+            - run:
+                    name: update-npm
+                    command: 'sudo npm install -g npm@latest'
+            - restore_cache:
+                    key: dependency-cache-{{ checksum "package-lock.json" }}
+            - run:
+                    name: install-npm
+                    command: npm install
+            - save_cache:
+                    key: dependency-cache-{{ checksum "package-lock.json" }}
+                    paths:
+                        - .
+            # - run: sleep 5
+            # - run: 
+            #       name: Build DB Schema
+            #       command: npm run ci_schema
+            # - run: sleep 10
+            # - run: 
+            #       name: Seed DB
+            #       command: npm run ci_seed
+            # - run: 
+            #       name: Run Tests
+            #       command: npm run ci_test
+            # - run:
+            #       name: code-coverage
+            #       command: './node_modules/.bin/nyc report --reporter=text-lcov'
+            # - store_artifacts: 
+            #        path: test-results.xml
+            #        prefix: tests
+            # - store_artifacts:
+            #       path: coverage
+            #       prefix: coverage
+            # - store_test_results:
+            #       path: test-results.xml
+    update-eks-dev:
+        machine:
+            image: ubuntu-1604:201903-01
+        steps:
+            - checkout
+            - aws-ecr/build-and-push-image:
+                account-url: AWS_ECR_ACCOUNT_URL_EAST
+                region: AWS_REGION_EAST
+                repo: hss_dev_user_activity
+                tag: latest,${CIRCLE_BUILD_NUM}
+            - aws-eks/update-kubeconfig-with-authenticator:
+                cluster-name: hss_dev_k8
+                install-kubectl: true
+            - kubernetes/update-container-image:
+                container-image-updates: 'dev-user-activity=${AWS_ECR_ACCOUNT_URL_EAST}/hss_dev_user_activity:${CIRCLE_BUILD_NUM}'
+                get-rollout-status: true
+                resource-name: deployment/dev-user-activity-deployment
+                show-kubectl-command: true
+                watch-rollout-status: true
+                watch-timeout: 10m       
+    update-eks-integration:
+        machine:
+            image: ubuntu-1604:201903-01
+        steps:
+            - checkout
+            - aws-ecr/build-and-push-image:
+                account-url: AWS_ECR_ACCOUNT_URL_EAST
+                region: AWS_REGION_EAST
+                repo: hss_dev_user_activit_integration
+                tag: latest,${CIRCLE_BUILD_NUM}
+            - aws-eks/update-kubeconfig-with-authenticator:
+                cluster-name: hss_dev_k8
+                install-kubectl: true
+            - kubernetes/update-container-image:
+                container-image-updates: 'integration-user-activity=${AWS_ECR_ACCOUNT_URL_EAST}/hss_dev_user_activit_integration:${CIRCLE_BUILD_NUM}'
+                get-rollout-status: true
+                resource-name: deployment/integration-user-activity-deployment
+                show-kubectl-command: true
+                watch-rollout-status: true
+                watch-timeout: 10m   
+workflows:
+  build-test-deploy:
+    jobs:
+      - build
+      - update-eks-dev:
+          filters:
+              branches:
+                  only: 
+                      - develop
+          requires:
+              - build
+      - update-eks-integration:
+          filters:
+              branches:
+                  only: 
+                      - integration
+          requires:
+              - build
