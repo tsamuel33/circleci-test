@@ -13,6 +13,6 @@ workflows:
           dockerfile: Dockerfile
           path: pathToMyDockerfile
           profile-name: myProfileName
-          region: us-east-1
+          region: AWS_REGION_ENV_VAR_NAME
           repo: dfd-app-repository
           tag: 'latest,myECRRepoTag'
