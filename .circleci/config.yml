@@ -13,5 +13,5 @@ workflows:
           path: .circleci/images
           profile-name: ContainerRegistryServiceUser
           region: AWS_REGION_ENV_VAR_NAME
-          repo: dfd_dev
+          repo: dfd-dev
           tag: 'latest,myECRRepoTag'
