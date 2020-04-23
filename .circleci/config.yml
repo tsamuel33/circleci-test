@@ -12,6 +12,6 @@ workflows:
           dockerfile: Dockerfile
           path: .circleci/images
           profile-name: ContainerRegistryServiceUser
-          region: us-east-1
+          region: AWS_REGION_ENV_VAR_NAME
           repo: dfd_dev
           tag: 'latest,myECRRepoTag'
