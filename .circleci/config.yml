@@ -14,4 +14,4 @@ workflows:
           profile-name: ContainerRegistryServiceUser
           region: AWS_REGION_ENV_VAR_NAME
           repo: dfd-dev
-          tag: '20200501'
+          tag: '20200505'
